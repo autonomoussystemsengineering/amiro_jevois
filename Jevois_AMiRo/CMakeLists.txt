@@ -81,7 +81,7 @@ INCLUDE("${CMAKE_CURRENT_LIST_DIR}/AdditionalCMakeFiles/setCompilerIncludes.cmak
 
 # Set the include pathe
 include_directories(
-    #"$ENV{MUROX_INCLUDE_DIRS}"                                      # Other includes like converters and stuff
+    #"$ENV{MUROX_INCLUDE_DIRS}"                                   # Other includes like converters and stuff
     "${CMAKE_CURRENT_LIST_DIR}/includes"
     ${CMAKE_CURRENT_BINARY_DIR}                                     # add the binary tree to the search path for
     ${GXX_INCLUDES}
