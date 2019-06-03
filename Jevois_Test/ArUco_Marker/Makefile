@@ -13,10 +13,11 @@ endif
 #DEBUG	= -g -O0
 DEBUG	= -O3
 CC	= g++
-INCLUDE	= -I/usr/local/include
+INCLUDE	= -I/usr/local/include $(CURDIR)
 CFLAGS	= $(DEBUG) -Wall $(INCLUDE) -Winline -pipe -o
 
 LDFLAGS	= -L/usr/local/lib
+DEPS = amiroArucoGlobal.hpp
 #LDLIBS    = 
 
 # Should not alter anything below this line
