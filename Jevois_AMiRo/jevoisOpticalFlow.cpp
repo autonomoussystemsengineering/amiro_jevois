@@ -9,12 +9,19 @@
 
 #ifdef MOTORCONTROL
 #include <ControllerAreaNetwork.h>
+#include <Color.h>
 #endif
 
 #define MAXBYTES 100
 #define PI 3.14159f
 
 using namespace std;
+
+//For mean Calculation of rotation velocity
+const int gamma_mean_size = 15;
+double gamma_buffer[gamma_mean_size] = {};
+unsigned int gamma_index = 0;
+double CalculateMean(double new_gamma);
 
 //Output Values from Optical Flow
 double COMANV[2];
@@ -28,11 +35,11 @@ int main(int argc, const char *argv[])
   system("echo \"streamon\" > /dev/ttyACM0");
 
   //Parameter for Optical Flow
-  double n0 = 50.0;
-  double g = 1.5;
-  double k = -650000.0;
-  double v = 70000.0;
-  double alpha = 0.5;
+  double n0 = 12;
+  double g = 1;
+  double k = -1800000.0;
+  double v = 120000.0;
+  double alpha = 0.0;
   if (argc>=2) {
     n0 = atof(argv[1]);
   }
@@ -60,6 +67,9 @@ int main(int argc, const char *argv[])
   //CAN Objekt for motor control
 #ifdef MOTORCONTROL
   ControllerAreaNetwork CAN;
+
+
+  CAN.setLightBrightness(0);
 #endif
 
   //Open Serial Connection to Jevois
@@ -115,10 +125,11 @@ int main(int argc, const char *argv[])
 
       //Calculate Optical Flow, when vertical and horizontal flow is recieved
       if (c >= 2) {
-        double CAD = -atan2(COMANV[1], COMANV[0]) / (2.0f * PI / 130.0f);
+        double CAD = -atan2(COMANV[1], COMANV[0]) / (2.0f * PI / 65.0f);
         double CN = sqrt(pow(COMANV[0], 2) + pow(COMANV[1], 2));
         double WCAN = 1.0f / (1.0f + pow(CN / n0, -g));
         double gamma = WCAN * CAD + (1.0f - WCAN) * alpha;
+        gamma = CalculateMean(gamma);
         gamma *= k;
         printf("X CM %f %f, CAD: %f, gamma: %f\n", COMANV[0], COMANV[1], CAD, gamma);
 
@@ -138,4 +149,20 @@ int main(int argc, const char *argv[])
   }
 
   return 0;
+}
+
+
+
+double CalculateMean(double new_gamma) {
+  gamma_buffer[gamma_index] = new_gamma;
+  gamma_index++;
+  if (gamma_index >= gamma_mean_size)
+    gamma_index = 0;
+
+  double mean = 0;
+  for(int i=0; i<gamma_mean_size; i++) {
+    mean = mean +  gamma_buffer[i]; 
+  }
+  mean = mean/double(gamma_mean_size);
+  return mean;
 }
