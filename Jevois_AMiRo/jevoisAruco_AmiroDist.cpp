@@ -7,6 +7,7 @@
 #include <math.h>
 #include <sys/time.h>
 #include <time.h>
+#include <termios.h>	
 
 #include "amiroArucoGlobal.hpp"
 
@@ -17,7 +18,7 @@
 #endif
 
 #define MAXBYTES 200
-#define MAX_SPEED 100000
+#define MAX_SPEED 20000
 #define MIN_SPEED 25000
 #define PI        3.14159265358979323846
 
@@ -43,17 +44,17 @@ plannerStates state = IDLE;
 plannerStates nextState = IDLE;
 
 //True, when 360 deg Searching process is done
-double TurningAngularSpeed = 1000000.0 * PI * 0.125;
+double TurningAngularSpeed = 1000000.0 * PI * 0.05;
 bool Turning_Done = false;
 
 //for P-Controller
 const double angular_thresh = 5;
-const double linear_thresh = 5;
+const double linear_thresh = 10;
 double Marker_X_Pos = 1000;
 double linear_diff = 1000;
 
 double P = 1000;
-double dist_desired = 150;
+double dist_desired = 300;
 
 const double lowpass_linear = 0.5;
 const double lowpass_angular = 0.5;
@@ -61,15 +62,21 @@ const double lowpass_angular = 0.5;
 int main(int argc, const char *argv[])
 {
     //Start Jevois Marker Detection Algortihm
-    system("echo \"streamoff\" > /dev/ttyACM0");
-    system("echo \"setpar serout USB\" > /dev/ttyACM0");
-    system("echo \"setmapping 5\" > /dev/ttyACM0");
-    system("echo \"setpar serstyle Normal\" > /dev/ttyACM0");
+    system("echo streamoff > /dev/ttyACM0");
+    system("echo streamoff > /dev/ttyACM0");
+    system("echo streamoff > /dev/ttyACM0");
+    system("echo streamoff > /dev/ttyACM0");
+    system("echo setpar serout USB > /dev/ttyACM0");
+    system("echo setmapping 5 > /dev/ttyACM0");
+    system("echo setpar serstyle Normal > /dev/ttyACM0");
     //parameter: 2D coordinates: dopose off - 3D: coordinates: dopose on
-    system("echo \"setpar dopose True\" > /dev/ttyACM0");
+    system("echo setpar dopose True > /dev/ttyACM0");
     //parameter to the size (width) in millimeters of your actual physical markers.
-    system("echo \"setpar markerlen 50\" > /dev/ttyACM0");
-    system("echo \"streamon\" > /dev/ttyACM0");
+    system("echo setpar markerlen 94 > /dev/ttyACM0");
+    system("echo streamon > /dev/ttyACM0");
+    system("echo streamon > /dev/ttyACM0");
+    system("echo streamon > /dev/ttyACM0");
+    system("echo streamon > /dev/ttyACM0");
 
     //Variables for Reading Jevois Output Strings
     char buf;
@@ -97,6 +104,7 @@ int main(int argc, const char *argv[])
     double z = 0;
     Marker_t MarkerBuffer[MarkerBufferSize];
     int marker_idx = -1;
+    bool marker_tracked = false;
 
     //Variables for time measurement
     struct timeval t0;
@@ -109,10 +117,22 @@ int main(int argc, const char *argv[])
     //CAN Objekt for motor control
 #ifdef MOTORCONTROL
     ControllerAreaNetwork CAN;
+    CAN.setLightBrightness(0);
 #endif
 
     //Open Serial Connection to Jevois
-    int fd = open("/dev/ttyACM0", O_RDWR);
+    int fd = open("/dev/ttyACM0", O_RDWR | O_NOCTTY);
+
+    struct termios options;
+	tcgetattr(fd, &options);
+	options.c_cflag = B9600 | CS8 | PARENB | CLOCAL | CREAD;		//<Set baud rate
+	options.c_iflag = IGNPAR;
+	options.c_oflag = 0;
+	options.c_lflag = 0;
+    options.c_cc[VMIN] = 0;
+
+	tcflush(fd, TCIFLUSH);
+	tcsetattr(fd, TCSANOW, &options);
 
     //Start Main-Loop
     gettimeofday(&tMarkerStart, 0);
@@ -120,6 +140,7 @@ int main(int argc, const char *argv[])
     {
         //Read every Character
         count = read(fd, &buf, 1);
+        //printf("char: %c\n",buf);
 
         //Check if message is completly send
         if (buf == '\n')
@@ -129,41 +150,30 @@ int main(int argc, const char *argv[])
             if (marker_idx >= 10)
                 marker_idx = 0;
 
+            //Decode Message
             bool marker_found = DecodeJevoisMarker(buffer);
             
-
+            
             if(marker_found == true) {
                 gettimeofday(&tMarkerStart, 0);
-            }
-
-            //Add Marker to Buffer
-            if (marker_found == true)
-            {
-                MarkerBuffer[marker_idx] = DecodedMarker;
-            }
-            else
-            {
-                DecodedMarker.id = -1;
-                DecodedMarker.x = DecodedMarker.y = DecodedMarker.z = 1000;
-                DecodedMarker.markerlen = 0;
-
-                MarkerBuffer[marker_idx] = DecodedMarker;
-            }
-
-            //Marker Buffer stuff
-            bool correct_ID = false;
-            if (marker_idx >= 9) {
-                BufferFilled = true;
-            }
-            if (BufferFilled == true) {
-                correct_ID = SelectMarkerFromBuffer(MarkerBuffer, marker_idx, desired_Marker_ID);
-            }
-
-            //Save correct ID to track it
-            if (correct_ID == true) {
+                if(marker_tracked == false){
+                    //printf("Marker_ID: %d\n",DecodedMarker.id);
+                }
+                marker_tracked = true;
                 actual_ID = DecodedMarker.id;
                 Marker_X_Pos = DecodedMarker.x;
                 linear_diff = DecodedMarker.z - dist_desired;
+                
+            } else {
+                gettimeofday(&tMarkerEnd, 0);
+                time_marker_diff = timedifference_msec(tMarkerStart, tMarkerEnd);
+                if (time_marker_diff >= 500) {
+                    if(marker_tracked == true){
+                        //printf("no marker\n");
+                    }
+                    marker_tracked = false;
+                    actual_ID = -1;
+                }
             }
 
             //Reset message buffer
@@ -172,12 +182,6 @@ int main(int argc, const char *argv[])
         }
         else
         {
-            gettimeofday(&tMarkerEnd, 0);
-            time_marker_diff = timedifference_msec(tMarkerStart, tMarkerEnd);
-            if (time_marker_diff >= 2000) {
-                actual_ID = -1;
-            }
-
             buffer[n] = buf;
             n++;
             if (n > MAXBYTES)
@@ -185,7 +189,18 @@ int main(int argc, const char *argv[])
                 n = 0;
                 memset(buffer, 0, MAXBYTES);
             }
+            gettimeofday(&tMarkerEnd, 0);
+            time_marker_diff = timedifference_msec(tMarkerStart, tMarkerEnd);
+            if (time_marker_diff >= 500) {
+                if(marker_tracked == true){
+                    //printf("no marker\n");
+                }
+                marker_tracked = false;
+                actual_ID = -1;
+            }
         }
+
+
         //Planer Switch
         switch (state)
         {
@@ -206,11 +221,6 @@ int main(int argc, const char *argv[])
                 printf("State=MIDLLE_TURN\n");
                 nextState = MIDLLE_TURN;
             }
-            // else if (actual_ID == Start_Stop_ID)
-            // {
-            //     printf("State=STOP\n");
-            //     nextState = STOP;
-            // }
             else
             {
                 printf("State=START_SEARCH_TURN\n");
@@ -230,15 +240,11 @@ int main(int argc, const char *argv[])
             {
                 printf("State=MIDLLE_TURN\n");
                 nextState = MIDLLE_TURN;
+                Turning_Done = false;
             }
-            // else if (actual_ID == Start_Stop_ID)
-            // {
-            //     printf("State=STOP\n");
-            //     nextState = STOP;
-            // }
             else if (Turning_Done == true)
             {
-                printf("State=STOP\n");
+                printf("State=STOP because Turning\n");
                 nextState = STOP;
             }
             break;
@@ -278,6 +284,7 @@ int main(int argc, const char *argv[])
                 printf("State=SEARCH\n");
                 nextState = SEARCH;
             } 
+            break;
         }
         case STOP:
         {
@@ -303,6 +310,7 @@ int main(int argc, const char *argv[])
         }
         case SEARCH:
         {
+            Turning_Done = false;
 #ifdef MOTORCONTROL
             CAN.setTargetSpeed(0,0);
 #endif
@@ -311,7 +319,7 @@ int main(int argc, const char *argv[])
         }
         case START_SEARCH_TURN:
         {
-            Turning_Done = false;
+            
             //Start Timer new
             gettimeofday(&t0, 0);
 #ifdef MOTORCONTROL
@@ -343,7 +351,7 @@ int main(int argc, const char *argv[])
                 CAN.setTargetSpeed(0, int(-TurningAngularSpeed));
 #endif 
             }
-            //printf("distance to middle turn: %f\n", Marker_X_Pos);
+            printf("distance to middle turn: %f\n", Marker_X_Pos);
             //printf("State=MIDLLE_TURN\n");
             break;
         }
@@ -351,14 +359,14 @@ int main(int argc, const char *argv[])
         {
             if(linear_diff < 0) {
 #ifdef MOTORCONTROL
-                CAN.setTargetSpeed(MAX_SPEED, 0);
+                CAN.setTargetSpeed(-MAX_SPEED, 0);
 #endif 
             } else {
 #ifdef MOTORCONTROL
-                CAN.setTargetSpeed(-MAX_SPEED, 0);
+                CAN.setTargetSpeed(MAX_SPEED, 0);
 #endif 
             }
-            //printf("distance to middle drive: %f\n", linear_diff);
+            printf("distance to middle drive: %f - %f - %f\n", DecodedMarker.z, dist_desired, linear_diff);
             //printf("State=DRIVE_TO_TARGET\n");
             break;
         }
@@ -367,6 +375,7 @@ int main(int argc, const char *argv[])
 #ifdef MOTORCONTROL
             CAN.setTargetSpeed(0,0);
 #endif
+            break;
         }
         case STOP:
         {
@@ -377,7 +386,7 @@ int main(int argc, const char *argv[])
             break;
         }
         }
-        state = nextState;
+          state = nextState;
     }
 
     return 0;
