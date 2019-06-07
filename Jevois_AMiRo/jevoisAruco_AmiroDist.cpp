@@ -11,53 +11,58 @@
 
 #include "amiroArucoGlobal.hpp"
 
-#define MOTORCONTROL
-
-#ifdef MOTORCONTROL
 #include <ControllerAreaNetwork.h>
-#endif
 
-#define MAXBYTES 200
-#define MAX_SPEED 20000
-#define MIN_SPEED 25000
-#define PI        3.14159265358979323846
+
+#define MAXBYTES        200
+#define PI              3.14159265358979323846
+
+#define MAX_SPEED       80000
+#define MIN_SPEED       10000
+
+#define MAX_ROT_SPEED   1000000 * 2 * PI * 0.1
+#define MIN_ROT_SPEED   1000000 * 2 * PI * 0.01
 
 using namespace std;
 
 //Functions
 bool DecodeJevoisMarker(char buffer[]);
-bool SelectMarkerFromBuffer(Marker_t MarkerBuffer[], unsigned int marker_idx, int Marker_ID);
+double Controller_Pos(double u, double P);
+double Controller_Angluar(double u, double P);
 float timedifference_msec(struct timeval t0, struct timeval t1);
 
-//Aruco actual Marker
-int desired_Marker_ID = 42;
+//Aruco actual detected Marker
 Marker_t DecodedMarker;
 int actual_ID = -1;
-const int MarkerBufferSize = 10;
-bool BufferFilled = false;
-
+//Tracking Marker ID
+int desired_Marker_ID = 42;
 //Marker ID, when Start/Stop tracking process
-int const Start_Stop_ID = 0;
+int start_Marker_ID = 0;
+
+//True, when 360 deg Searching process is done
+bool Turning_Done = false;
+int Turning_Rounds = 1;
+
+//Accuracy in Tracking
+const double angular_thresh = 2; //in mm
+const double linear_thresh = 2; //in mm
+const double angular_thresh_target = 5;
+const double linear_thresh_target = 10;
+
+//P-Controller:
+double Marker_X_Pos = 1000;
+double linear_diff = 1000;
+
+double P_linear = 500;
+double P_angular = 30000;
+double disired_dist = 300;
+
+const double lowpass_linear = 0.5;
+const double lowpass_angular = 0.5;
 
 //Planner States
 plannerStates state = IDLE;
 plannerStates nextState = IDLE;
-
-//True, when 360 deg Searching process is done
-double TurningAngularSpeed = 1000000.0 * PI * 0.05;
-bool Turning_Done = false;
-
-//for P-Controller
-const double angular_thresh = 5;
-const double linear_thresh = 10;
-double Marker_X_Pos = 1000;
-double linear_diff = 1000;
-
-double P = 1000;
-double dist_desired = 300;
-
-const double lowpass_linear = 0.5;
-const double lowpass_angular = 0.5;
 
 int main(int argc, const char *argv[])
 {
@@ -87,23 +92,27 @@ int main(int argc, const char *argv[])
     //Parameter for ArUco Marker Tracking
     if (argc >= 2)
     {
-        P = atof(argv[1]);
+        P_linear = atof(argv[1]);
     }
     if (argc >= 3)
     {
-        dist_desired = atof(argv[2]);
+        P_angular= atof(argv[2]);
     }
     if (argc >= 4)
     {
-        desired_Marker_ID = atoi(argv[3]);
+        disired_dist = atof(argv[3]);
     }
-    printf("Parameter:\tP = %f\t-\tdistance = %f\t-\tMarker_ID = %d\n\n", P, dist_desired, desired_Marker_ID);
+    if (argc >= 5)
+    {
+        desired_Marker_ID = atoi(argv[4]);
+    }
+    if (argc >= 6)
+    {
+        start_Marker_ID = atoi(argv[5]);
+    }
+    printf("Parameter:\tP_lin = %f\t-\tP_ang = %f\t-\tdistance = %f\t-\tMarker_ID = %d\t-\tStart_ID = %d\n\n", P_linear, P_angular, disired_dist, desired_Marker_ID, start_Marker_ID);
 
     //Variables for Marker Tracking
-    double z_last = 0;
-    double z = 0;
-    Marker_t MarkerBuffer[MarkerBufferSize];
-    int marker_idx = -1;
     bool marker_tracked = false;
 
     //Variables for time measurement
@@ -115,14 +124,14 @@ int main(int argc, const char *argv[])
     float time_marker_diff = 0;
 
     //CAN Objekt for motor control
-#ifdef MOTORCONTROL
     ControllerAreaNetwork CAN;
+
+    //Set Lights off
     CAN.setLightBrightness(0);
-#endif
 
     //Open Serial Connection to Jevois
     int fd = open("/dev/ttyACM0", O_RDWR | O_NOCTTY);
-
+    //Set Options for serial connection to jevois
     struct termios options;
 	tcgetattr(fd, &options);
 	options.c_cflag = B9600 | CS8 | PARENB | CLOCAL | CREAD;		//<Set baud rate
@@ -130,7 +139,6 @@ int main(int argc, const char *argv[])
 	options.c_oflag = 0;
 	options.c_lflag = 0;
     options.c_cc[VMIN] = 0;
-
 	tcflush(fd, TCIFLUSH);
 	tcsetattr(fd, TCSANOW, &options);
 
@@ -142,14 +150,9 @@ int main(int argc, const char *argv[])
         count = read(fd, &buf, 1);
         //printf("char: %c\n",buf);
 
-        //Check if message is completly send
+        //Check if message is completly send and decode jevois string
         if (buf == '\n')
         {
-            //Marker Buffer idx
-            marker_idx++;
-            if (marker_idx >= 10)
-                marker_idx = 0;
-
             //Decode Message
             bool marker_found = DecodeJevoisMarker(buffer);
             
@@ -162,7 +165,7 @@ int main(int argc, const char *argv[])
                 marker_tracked = true;
                 actual_ID = DecodedMarker.id;
                 Marker_X_Pos = DecodedMarker.x;
-                linear_diff = DecodedMarker.z - dist_desired;
+                linear_diff = DecodedMarker.z - disired_dist;
                 
             } else {
                 gettimeofday(&tMarkerEnd, 0);
@@ -200,16 +203,14 @@ int main(int argc, const char *argv[])
             }
         }
 
-
         //Planer Switch
         switch (state)
         {
         case IDLE:
         {
-            if (actual_ID == Start_Stop_ID)
+            if (actual_ID == start_Marker_ID)
             {
                 printf("State=SEARCH\n");
-                sleep(2);
                 nextState = SEARCH;
             }
             break;
@@ -228,7 +229,7 @@ int main(int argc, const char *argv[])
             }
             break;
         }
-        case START_SEARCH_TURN: 
+        case START_SEARCH_TURN: Turning_Rounds
         {           
             printf("State=SEARCH_TURN\n");
             nextState = SEARCH_TURN;
@@ -244,8 +245,8 @@ int main(int argc, const char *argv[])
             }
             else if (Turning_Done == true)
             {
-                printf("State=STOP because Turning\n");
-                nextState = STOP;
+                printf("State=IDLE\n");
+                nextState = IDLE;
             }
             break;
         }
@@ -279,20 +280,11 @@ int main(int argc, const char *argv[])
         }
         case TARGET:
         {
-            if (actual_ID != desired_Marker_ID || fabs(Marker_X_Pos) > angular_thresh || fabs(linear_diff) > linear_thresh)
+            if (actual_ID != desired_Marker_ID || fabs(Marker_X_Pos) > angular_thresh_target || fabs(linear_diff) > linear_thresh_target)
             {
                 printf("State=SEARCH\n");
                 nextState = SEARCH;
             } 
-            break;
-        }
-        case STOP:
-        {
-            if (actual_ID == Start_Stop_ID) {
-                printf("State=SEARCH\n");
-                sleep(2);
-                nextState = SEARCH;
-            }
             break;
         }
         }
@@ -302,87 +294,64 @@ int main(int argc, const char *argv[])
         {
         case IDLE:
         {
-#ifdef MOTORCONTROL
             CAN.setTargetSpeed(0,0);
-#endif
-            //printf("State=IDLE\n");
             break;
         }
         case SEARCH:
         {
             Turning_Done = false;
-#ifdef MOTORCONTROL
             CAN.setTargetSpeed(0,0);
-#endif
-            //printf("State=SEARCH\n");
             break;
         }
         case START_SEARCH_TURN:
         {
-            
             //Start Timer new
             gettimeofday(&t0, 0);
-#ifdef MOTORCONTROL
-            CAN.setTargetSpeed(0, int(TurningAngularSpeed));
-#endif
+            CAN.setTargetSpeed(0, int(MAX_ROT_SPEED));
             break;
         }
         case SEARCH_TURN:
         {
+            //Get new timestamp
             gettimeofday(&t1, 0);
             time_diff = timedifference_msec(t0, t1);
+            CAN.setTargetSpeed(0, int(MAX_ROT_SPEED));
             //Stop, when Searching 360deg is done
-            //printf("Turning %f\n",((TurningAngularSpeed * 0.000001) * (time_diff * 0.001)));
-            if(((TurningAngularSpeed * 0.000001) * (time_diff * 0.001)) >= (2 * PI)) {
+            //printf("Turning %f\n",((MAX_ROT_SPEED * 0.000001) * (time_diff * 0.001)));
+            if(((MAX_ROT_SPEED * 0.000001) * (time_diff * 0.001)) >= (2 * PI * Turning_Rounds)) {
                 Turning_Done = true;
             }
-
-            //printf("State=SEARCH_TURN\n");
             break;
         }
         case MIDLLE_TURN:
         {
+            double angular_speed = Controller_Angluar(fabs(Marker_X_Pos), P_angular); 
+            //Turn Marker in the middle of the cam frame
             if(Marker_X_Pos < 0) {
-#ifdef MOTORCONTROL
-                CAN.setTargetSpeed(0, int(TurningAngularSpeed));
-#endif 
+                CAN.setTargetSpeed(0, int(angular_speed));
             } else {
-#ifdef MOTORCONTROL
-                CAN.setTargetSpeed(0, int(-TurningAngularSpeed));
-#endif 
+                CAN.setTargetSpeed(0, int(-angular_speed));
             }
+
             printf("distance to middle turn: %f\n", Marker_X_Pos);
-            //printf("State=MIDLLE_TURN\n");
             break;
         }
         case DRIVE_TO_TARGET:
         {
+            double linear_speed = Controller_Angluar(fabs(linear_diff), P_linear); 
+            //Drive to the desired distance to marker
             if(linear_diff < 0) {
-#ifdef MOTORCONTROL
-                CAN.setTargetSpeed(-MAX_SPEED, 0);
-#endif 
+                CAN.setTargetSpeed(-linear_speed, 0);
             } else {
-#ifdef MOTORCONTROL
-                CAN.setTargetSpeed(MAX_SPEED, 0);
-#endif 
+                CAN.setTargetSpeed(linear_speed, 0);
             }
-            printf("distance to middle drive: %f - %f - %f\n", DecodedMarker.z, dist_desired, linear_diff);
-            //printf("State=DRIVE_TO_TARGET\n");
+
+            printf("distance to middle drive: %f - %f - %f\n", DecodedMarker.z, disired_dist, linear_diff);
             break;
         }
         case TARGET:
         {
-#ifdef MOTORCONTROL
             CAN.setTargetSpeed(0,0);
-#endif
-            break;
-        }
-        case STOP:
-        {
-#ifdef MOTORCONTROL
-            CAN.setTargetSpeed(0,0);
-#endif
-            //printf("State=STOP\n");
             break;
         }
         }
@@ -391,6 +360,9 @@ int main(int argc, const char *argv[])
 
     return 0;
 }
+
+
+
 
 bool DecodeJevoisMarker(char buffer[])
 {
@@ -454,34 +426,33 @@ bool DecodeJevoisMarker(char buffer[])
 }
 
 
-bool SelectMarkerFromBuffer(Marker_t MarkerBuffer[], unsigned int marker_idx, int Marker_ID){
-    bool correct_Marker = false;
-    int idx = marker_idx;
-
-    for(int i = 0; i < MarkerBufferSize; i++){
-
-        if(idx < 0) {
-            idx = idx + MarkerBufferSize;
-        }
-
-        DecodedMarker = MarkerBuffer[idx];
-
-        if(MarkerBuffer[idx].id == Marker_ID) {
-            correct_Marker = true;   
-            break;  
-        }
-
-        if(MarkerBuffer[idx].id == Start_Stop_ID) {
-            correct_Marker = true;
-            break;
-        }
-
-        idx--;
-    }
-    return correct_Marker;
-}
-
 float timedifference_msec(struct timeval t0, struct timeval t1)
 {
     return (t1.tv_sec - t0.tv_sec) * 1000.0f + (t1.tv_usec - t0.tv_usec) / 1000.0f;
+}
+
+
+double Controller_Pos(double u, double P) {
+    double motor_output = u * P;
+
+    if (motor_output >= MAX_SPEED) {
+        motor_output = MAX_SPEED;
+    } else if(motor_output <= MIN_SPEED) {
+        motor_output = MIN_SPEED;
+    }
+
+    return motor_output;
+}
+
+
+double Controller_Angluar(double u, double P) {
+    double motor_output = u * P;
+
+    if (motor_output >= MAX_ROT_SPEED) {
+        motor_output = MAX_SPEED;
+    } else if(motor_output <= MIN_ROT_SPEED) {
+        motor_output = MIN_SPEED;
+    }
+
+    return motor_output;
 }
