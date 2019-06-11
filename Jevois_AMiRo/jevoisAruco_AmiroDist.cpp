@@ -44,8 +44,8 @@ bool Turning_Done = false;
 int Turning_Rounds = 1;
 
 //Accuracy in Tracking
-const double angular_thresh = 2; //in mm
-const double linear_thresh = 2; //in mm
+const double angular_thresh = 8; //in mm
+const double linear_thresh = 10; //in mm
 const double angular_thresh_target = 5;
 const double linear_thresh_target = 10;
 
@@ -229,7 +229,7 @@ int main(int argc, const char *argv[])
             }
             break;
         }
-        case START_SEARCH_TURN: Turning_Rounds
+        case START_SEARCH_TURN: 
         {           
             printf("State=SEARCH_TURN\n");
             nextState = SEARCH_TURN;
@@ -325,7 +325,7 @@ int main(int argc, const char *argv[])
         }
         case MIDLLE_TURN:
         {
-            double angular_speed = Controller_Angluar(fabs(Marker_X_Pos), P_angular); 
+            double angular_speed = MIN_ROT_SPEED;//Controller_Angluar(fabs(Marker_X_Pos), P_angular); 
             //Turn Marker in the middle of the cam frame
             if(Marker_X_Pos < 0) {
                 CAN.setTargetSpeed(0, int(angular_speed));
@@ -338,7 +338,7 @@ int main(int argc, const char *argv[])
         }
         case DRIVE_TO_TARGET:
         {
-            double linear_speed = Controller_Angluar(fabs(linear_diff), P_linear); 
+            double linear_speed = MIN_SPEED;//Controller_Angluar(fabs(linear_diff), P_linear); 
             //Drive to the desired distance to marker
             if(linear_diff < 0) {
                 CAN.setTargetSpeed(-linear_speed, 0);

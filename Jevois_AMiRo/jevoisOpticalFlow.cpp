@@ -29,10 +29,10 @@ double COMANV[2];
 int main(int argc, const char *argv[])
 {
   //Start Jevois Optical Flow Algortihm
-  system("echo \"streamoff\" > /dev/ttyACM0");
-  system("echo \"setpar serout USB\" > /dev/ttyACM0");
-  system("echo \"setmapping 9\" > /dev/ttyACM0");
-  system("echo \"streamon\" > /dev/ttyACM0");
+  system("echo streamoff > /dev/ttyACM0");
+  system("echo setpar serout USB > /dev/ttyACM0");
+  system("echo setmapping 9 > /dev/ttyACM0");
+  system("echo streamon > /dev/ttyACM0");
 
   //Parameter for Optical Flow
   double n0 = 12;
