@@ -18,10 +18,10 @@
 #define PI              3.14159265358979323846
 
 #define MAX_SPEED       80000
-#define MIN_SPEED       10000
+#define MIN_SPEED       30000
 
 #define MAX_ROT_SPEED   1000000 * 2 * PI * 0.1
-#define MIN_ROT_SPEED   1000000 * 2 * PI * 0.01
+#define MIN_ROT_SPEED   1000000 * 2 * PI * 0.03
 
 using namespace std;
 
@@ -46,7 +46,7 @@ int Turning_Rounds = 1;
 //Accuracy in Tracking
 const double angular_thresh = 8; //in mm
 const double linear_thresh = 10; //in mm
-const double angular_thresh_target = 5;
+const double angular_thresh_target = 8;
 const double linear_thresh_target = 10;
 
 //P-Controller:
@@ -122,6 +122,9 @@ int main(int argc, const char *argv[])
     struct timeval tMarkerStart;
     struct timeval tMarkerEnd;
     float time_marker_diff = 0;
+
+    bool AngularMove = false;
+    bool LinearMove = false;
 
     //CAN Objekt for motor control
     ControllerAreaNetwork CAN;
@@ -252,15 +255,27 @@ int main(int argc, const char *argv[])
         }
         case MIDLLE_TURN:
         {
+            AngularMove = true;
+            LinearMove = true;
             if (actual_ID != desired_Marker_ID)
             {
                 printf("State=SEARCH\n");
                 nextState = SEARCH;
             }
-            else if (fabs(Marker_X_Pos) <= angular_thresh)
+            else 
             {
-                printf("State=DRIVE_TO_TARGET\n");
-                nextState = DRIVE_TO_TARGET;
+                if (fabs(Marker_X_Pos) <= angular_thresh) {
+                    AngularMove = false;
+                    //printf("State=DRIVE_TO_TARGET\n");
+                    //nextState = DRIVE_TO_TARGET;
+                }
+                if(fabs(linear_diff) <= linear_thresh) {
+                    LinearMove = false;
+                }
+
+                if (AngularMove == false &&  LinearMove == false) {
+                    nextState = TARGET;
+                }
             }
             break;
         }
@@ -328,12 +343,32 @@ int main(int argc, const char *argv[])
             double angular_speed = MIN_ROT_SPEED;//Controller_Angluar(fabs(Marker_X_Pos), P_angular); 
             //Turn Marker in the middle of the cam frame
             if(Marker_X_Pos < 0) {
-                CAN.setTargetSpeed(0, int(angular_speed));
+                //CAN.setTargetSpeed(0, int(angular_speed));
             } else {
-                CAN.setTargetSpeed(0, int(-angular_speed));
+                angular_speed = -angular_speed;
+                //CAN.setTargetSpeed(0, int(-angular_speed));
             }
 
+            if(AngularMove == false) {
+                angular_speed = 0;
+            }
+
+            double linear_speed = MIN_SPEED;
+
+            if(linear_diff < 0) {
+                linear_speed = -linear_speed;
+            } else {
+                //CAN.setTargetSpeed(linear_speed, 0);
+            }
+
+            if(LinearMove == false) {
+                linear_speed = 0;
+            }
+
+            CAN.setTargetSpeed(linear_speed, angular_speed);
+
             printf("distance to middle turn: %f\n", Marker_X_Pos);
+            printf("distance to middle drive: %f - %f - %f\n", DecodedMarker.z, disired_dist, linear_diff);
             break;
         }
         case DRIVE_TO_TARGET:
