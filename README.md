@@ -100,6 +100,15 @@ listmappings
 ```
 eingegeben wird. 
 
+# Hinweise
+Wenn die Programme auf dem Cognition Board per SSH gestartet werden und das USB Kabel anschließend entfernt wird, kann es zu Programmabbrüchen bei drahtloser Ausführung des Applikation kommen. Um dies zu umgehen, sollten die Programme per serieller Schnittstelle gestartet werden
+
+# Entwickler/Autoren/Verantwortliche
+
+* [kevinp1993](https://github.com/kevinp1993)
+* [mrothmann](https://github.com/mrothmann)
+* [tik0](https://github.com/tik0)
+
 
 
 
