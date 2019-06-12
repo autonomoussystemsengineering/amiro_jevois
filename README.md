@@ -6,8 +6,11 @@ Ziel dieses Projektes ist es, eine Demo Applikation für die Anbindung der [Jevo
 # Repo Aufbau:
 1. [Jevois_AMiRo](https://github.com/kevinp1993/AMiRo_Jevois/tree/master/Jevois_AMiRo): Software für den AMiRo inklusive cmake List
 2. [Jevois_Test](https://github.com/kevinp1993/AMiRo_Jevois/tree/master/Jevois_Test): Testprogramme und zugehörige Makefiles für die Inbetriebnahme der Jevois Kamera auf einem Rechner
-3. [Jevois_Software_Changes](https://github.com/kevinp1993/AMiRo_Jevois/tree/master/Jevois_Software_Changes): Geändertes Jevois Programm für das Obstacle Avoidance mittels Optical Flow. 
+3. [Jevois_Software_Changes](https://github.com/kevinp1993/AMiRo_Jevois/tree/master/Jevois_Software_Changes): Geändertes Jevois Programm für das Obstacle Avoidance mittels Optical Flow (Änderung von [OpticalFlow](https://github.com/jevois/jevoisbase/blob/master/src/Modules/OpticalFlow/OpticalFlow.C)). 
 4. [media](https://github.com/kevinp1993/AMiRo_Jevois/tree/master/media): ArUco Marker und Dokumentationen
+
+# Jevois Vorbereitung
+* Jevois Software auf SD-Card flashen: Anleitungen und Software finden sich auf der [Website](http://jevois.org/start/) und im [Repo](https://github.com/jevois/). Dabei die Änderung im [OpticalFlow](https://github.com/jevois/jevoisbase/blob/master/src/Modules/OpticalFlow/OpticalFlow.C) berücksichtigen. 
 
 # Vorbereitung 
 1. [AMiRo_Jevois Repo](https://github.com/kevinp1993/AMiRo_Jevois) auf Rechner clonen 
