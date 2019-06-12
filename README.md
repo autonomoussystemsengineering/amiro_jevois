@@ -3,6 +3,12 @@ Ziel dieses Projektes ist es, eine Demo Applikation für die Anbindung der [Jevo
 1. ArUco Marker Tracking
 2. Obstacle Avoidance mittels Optical Flow
 
+# Repo Aufbau:
+1. [Jevois_AMiRo](https://github.com/kevinp1993/AMiRo_Jevois/tree/master/Jevois_AMiRo): Software für den AMiRo inklusive cmake List
+2. [Jevois_Test](https://github.com/kevinp1993/AMiRo_Jevois/tree/master/Jevois_Test): Testprogramme und zugehörige Makefiles für die Inbetriebnahme der Jevois Kamera auf einem Rechner
+3. [Jevois_Software_Changes](https://github.com/kevinp1993/AMiRo_Jevois/tree/master/Jevois_Software_Changes): Geändertes Jevois Programm für das Obstacle Avoidance mittels Optical Flow. 
+4. [media](https://github.com/kevinp1993/AMiRo_Jevois/tree/master/media): ArUco Marker und Dokumentationen
+
 # Vorbereitung 
 1. [AMiRo_Jevois Repo](https://github.com/kevinp1993/AMiRo_Jevois) auf Rechner clonen 
 2. Einrichtung der Cross-Compiler Umgebung mit **poky-glibc-x86_64-meta-toolchain-openrobotix-cortexa8hf-vfp-neon-toolchain-openrobotix-1.7.2.sh** auf dem Rechner. Das benötigte shell script liegt im [ks-temp Ordner](sftp://twix.techfak.uni-bielefeld.de/vol/ks-temp/). 
