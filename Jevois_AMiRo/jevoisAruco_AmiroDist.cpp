@@ -158,7 +158,7 @@ int main(int argc, const char *argv[])
         {
             //Decode Message
             bool marker_found = DecodeJevoisMarker(buffer);
-            
+            printf("ID: %d",DecodedMarker.id);
             
             if(marker_found == true) {
                 gettimeofday(&tMarkerStart, 0);
