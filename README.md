@@ -34,7 +34,7 @@ ssh root@192.168.1.1
 10. Programme können nun auf dem AMiRo ausgeführt werden
 
 # ArUco Marker Tracking
-In diesem Demo Programm wird ein 4x4 ArUco Marker getrackt ([ArUco Generator](http://chev.me/arucogen/). Das Programm kann mit folgenden Parametern ausgeführt werden:
+In diesem Demo Programm wird ein 4x4 ArUco Marker getrackt ([ArUco Generator](http://chev.me/arucogen/)). Das Programm kann mit folgenden Parametern ausgeführt werden:
 ```
 ./jevoisAruco P_linear P_angular desired_dist desired_Marker_ID start_Marker_ID
 ```
@@ -44,10 +44,54 @@ In diesem Demo Programm wird ein 4x4 ArUco Marker getrackt ([ArUco Generator](ht
 * desired_Marker_ID: Zu Trackende Marker ID (Default: 42)
 * start_Marker_ID: Marker ID, welche für den Start des Programms nötig ist (Default: 0)
 
-Die wahre Markergröße kann dabei im Code von [jevoisAruco_AmiroDist.cpp](https://github.com/kevinp1993/AMiRo_Jevois/blob/master/Jevois_AMiRo/jevoisAruco_AmiroDist.cpp) in folgender Zeile geändert werden:
-```c++
+Die wahre Markergröße (in mm) kann dabei im Code von [jevoisAruco_AmiroDist.cpp](https://github.com/kevinp1993/AMiRo_Jevois/blob/master/Jevois_AMiRo/jevoisAruco_AmiroDist.cpp) in folgender Zeile geändert werden:
+```c
 system("echo setpar markerlen 94 > /dev/ttyACM0");
 ```
+Das Marker Tracking auf der Jevois Kamera wird mit folgender Zeile konfiguriert:
+```c
+system("echo setmapping 5 > /dev/ttyACM0");
+```
+Die Nummer des Mappings, muss dabei der entsprechenden Ausgabe der Jevois Kamera für das Marker Tracking entsprechen. Dies kann herausgefunden werden, indem über die serielle Schnittstelle z.B. mit:
+```
+screen /dev/ttyACM0
+```
+Der Befehl:
+```
+listmappings
+```
+eingegeben wird. 
+
+# Obstacle Avoidance mittels Optical Flow
+In diesem Demo Programm wird eine Hindernisserkennung und -vermeidung mittels optischen Flusses umgesetzt. Als Grundlage dient das Paper [A Bio-Inspired Model for Visual Collision
+Avoidance on a Hexapod Walking Robot
+](https://pub.uni-bielefeld.de/record/2905346) von Meyer et al. Das Programm kann mit folgenden Parametern ausgeführt werden:
+```
+./jevoisOpticalFlow n0 g k v alpha
+```
+* n0: Threshold (Default: 37,5)
+* g: Gain (Default: 5,0)
+* k: Verstärkungsfaktor für AMiRo Motor (Default: 3000000)
+* v: lineare Geschwindigkeit des AMiRo (Default: 120000)
+* alpha: Tiefpass Konstante (Default: 0,2)
+
+Das Programm ist in [jevoisOpticalFlow.cpp](https://github.com/kevinp1993/AMiRo_Jevois/blob/master/Jevois_AMiRo/jevoisOpticalFlow.cpp) hinterlegt.
+
+Der Optical Flow Algorithmus auf der Jevois Kamera wird mit folgender Zeile konfiguriert:
+```c
+system("echo setmapping 9 > /dev/ttyACM0");
+```
+Die Nummer des Mappings, muss dabei der entsprechenden Ausgabe der Jevois Kamera für den Optical Flow entsprechen. Dies kann herausgefunden werden, indem über die serielle Schnittstelle z.B. mit:
+```
+screen /dev/ttyACM0
+```
+Der Befehl:
+```
+listmappings
+```
+eingegeben wird. 
+
+
 
 
 
