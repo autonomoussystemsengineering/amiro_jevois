@@ -4,6 +4,7 @@
 #include <string.h>
 #include <string>
 #include <math.h>
+#include <termios.h>
 
 #define MOTORCONTROL
 
@@ -36,7 +37,7 @@ int main(int argc, const char *argv[])
 
   //Parameter for Optical Flow
   double n0 = 37.5; //threshold (optical flow)
-  double g = 3.0; //gain (optical flow)
+  double g = 5.0; //gain (optical flow)
   double k = -3000000.0; //gain (motor)
   double v = 120000.0; //forward velocity
   double alpha = 0.2; //lowpass constant (optical flow)
@@ -71,7 +72,17 @@ int main(int argc, const char *argv[])
 #endif
 
   //Open Serial Connection to Jevois
-  int fd = open("/dev/ttyACM0", O_RDWR);
+  int fd = open("/dev/ttyACM0", O_RDWR | O_NOCTTY);
+  //Set Options for serial connection to jevois
+  struct termios options;
+	tcgetattr(fd, &options);
+	options.c_cflag = B9600 | CS8 | PARENB | CLOCAL | CREAD;		//<Set baud rate
+	options.c_iflag = IGNPAR;
+	options.c_oflag = 0;
+	options.c_lflag = 0;
+  options.c_cc[VMIN] = 0;
+	tcflush(fd, TCIFLUSH);
+	tcsetattr(fd, TCSANOW, &options);
 
   //Start Main-Loop
   while(1) {

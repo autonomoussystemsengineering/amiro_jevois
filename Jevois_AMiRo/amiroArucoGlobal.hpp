@@ -7,10 +7,8 @@ enum plannerStates{
     SEARCH,
     START_SEARCH_TURN,
     SEARCH_TURN,
-    MIDLLE_TURN,
-    DRIVE_TO_TARGET,
-    TARGET,
-    STOP
+    DRIVE_MIDDLE_TO_TARGET,
+    TARGET
     };
 
 //Define Marker

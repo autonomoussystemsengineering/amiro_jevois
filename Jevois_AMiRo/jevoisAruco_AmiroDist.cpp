@@ -54,7 +54,7 @@ double Marker_X_Pos = 1000;
 double linear_diff = 1000;
 
 double P_linear = 500;
-double P_angular = 30000;
+double P_angular = 5000;
 double disired_dist = 300;
 
 const double lowpass_linear = 0.5;
@@ -222,8 +222,8 @@ int main(int argc, const char *argv[])
         {
             if (actual_ID == desired_Marker_ID)
             {
-                printf("State=MIDLLE_TURN\n");
-                nextState = MIDLLE_TURN;
+                printf("State=DRIVE_MIDDLE_TO_TARGET\n");
+                nextState = DRIVE_MIDDLE_TO_TARGET;
             }
             else
             {
@@ -242,8 +242,8 @@ int main(int argc, const char *argv[])
         {
             if (actual_ID == desired_Marker_ID)
             {
-                printf("State=MIDLLE_TURN\n");
-                nextState = MIDLLE_TURN;
+                printf("State=DRIVE_MIDDLE_TO_TARGET\n");
+                nextState = DRIVE_MIDDLE_TO_TARGET;
                 Turning_Done = false;
             }
             else if (Turning_Done == true)
@@ -253,7 +253,7 @@ int main(int argc, const char *argv[])
             }
             break;
         }
-        case MIDLLE_TURN:
+        case DRIVE_MIDDLE_TO_TARGET:
         {
             AngularMove = true;
             LinearMove = true;
@@ -266,8 +266,6 @@ int main(int argc, const char *argv[])
             {
                 if (fabs(Marker_X_Pos) <= angular_thresh) {
                     AngularMove = false;
-                    //printf("State=DRIVE_TO_TARGET\n");
-                    //nextState = DRIVE_TO_TARGET;
                 }
                 if(fabs(linear_diff) <= linear_thresh) {
                     LinearMove = false;
@@ -276,20 +274,6 @@ int main(int argc, const char *argv[])
                 if (AngularMove == false &&  LinearMove == false) {
                     nextState = TARGET;
                 }
-            }
-            break;
-        }
-        case DRIVE_TO_TARGET:
-        {
-            if (actual_ID != desired_Marker_ID)
-            {
-                printf("State=SEARCH\n");
-                nextState = SEARCH;
-            }
-            else if (fabs(linear_diff) <= linear_thresh)
-            {
-                printf("State=TARGET\n");
-                nextState = TARGET;
             }
             break;
         }
@@ -338,27 +322,22 @@ int main(int argc, const char *argv[])
             }
             break;
         }
-        case MIDLLE_TURN:
-        {
-            double angular_speed = MIN_ROT_SPEED;//Controller_Angluar(fabs(Marker_X_Pos), P_angular); 
+        case DRIVE_MIDDLE_TO_TARGET:
+        {           
             //Turn Marker in the middle of the cam frame
-            if(Marker_X_Pos < 0) {
-                //CAN.setTargetSpeed(0, int(angular_speed));
-            } else {
+            double angular_speed = Controller_Angluar(fabs(Marker_X_Pos), P_angular); 
+            if(Marker_X_Pos > 0) {
                 angular_speed = -angular_speed;
-                //CAN.setTargetSpeed(0, int(-angular_speed));
             }
 
             if(AngularMove == false) {
                 angular_speed = 0;
             }
 
-            double linear_speed = MIN_SPEED;
-
+            
+            double linear_speed = Controller_Pos(fabs(linear_diff),P_linear);
             if(linear_diff < 0) {
                 linear_speed = -linear_speed;
-            } else {
-                //CAN.setTargetSpeed(linear_speed, 0);
             }
 
             if(LinearMove == false) {
@@ -367,21 +346,8 @@ int main(int argc, const char *argv[])
 
             CAN.setTargetSpeed(linear_speed, angular_speed);
 
-            printf("distance to middle turn: %f\n", Marker_X_Pos);
-            printf("distance to middle drive: %f - %f - %f\n", DecodedMarker.z, disired_dist, linear_diff);
-            break;
-        }
-        case DRIVE_TO_TARGET:
-        {
-            double linear_speed = MIN_SPEED;//Controller_Angluar(fabs(linear_diff), P_linear); 
-            //Drive to the desired distance to marker
-            if(linear_diff < 0) {
-                CAN.setTargetSpeed(-linear_speed, 0);
-            } else {
-                CAN.setTargetSpeed(linear_speed, 0);
-            }
-
-            printf("distance to middle drive: %f - %f - %f\n", DecodedMarker.z, disired_dist, linear_diff);
+            //printf("distance to middle turn: %f\n", Marker_X_Pos);
+            //printf("distance to middle drive: %f - %f - %f\n", DecodedMarker.z, disired_dist, linear_diff);
             break;
         }
         case TARGET:
