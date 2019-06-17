@@ -55,7 +55,7 @@ double linear_diff = 1000;
 
 double P_linear = 500;
 double P_angular = 5000;
-double disired_dist = 300;
+double disired_dist = 250;
 
 const double lowpass_linear = 0.5;
 const double lowpass_angular = 0.5;
@@ -158,7 +158,7 @@ int main(int argc, const char *argv[])
         {
             //Decode Message
             bool marker_found = DecodeJevoisMarker(buffer);
-            printf("ID: %d",DecodedMarker.id);
+            //printf("ID: %d",DecodedMarker.id);
             
             if(marker_found == true) {
                 gettimeofday(&tMarkerStart, 0);
