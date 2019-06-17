@@ -1,6 +1,6 @@
 # AMiRo_Jevois
 Ziel dieses Projektes ist es, eine Demo Applikation für die Anbindung der [Jevois smart machine vision camera](http://jevois.org/) für den AMiRo zu implementieren. Dabei wird die Jevois Kamera über eine serielle Schnittstelle mit dem Cognition Board des AMiRo verbunden. Implementiert werden zwei Demo Applikationen:
-1. ArUco Marker Tracking
+1. ArUco Marker Tracking (Multi Marker und Single Marker Tracking)
 2. Obstacle Avoidance mittels Optical Flow
 
 # Repo Aufbau:
@@ -31,9 +31,10 @@ make
 * **Benutzer**: *root* 
 * **pw**: *amiropower*
 7. Das AMiRo Cognition Board über ein Micro-USB Kabel mit dem Rechner verbinden und Netzwerk einrichten  
-8. Die beiden Programme **jevoisAruco** und **jevoisOpticalFlow** können nun  auf das Cognition Board über eine SSH-Schnittstelle kopiert werden. Dazu vorher über die serielle Schnittstelle die IP-Adresse des Cognition Boards herausfinden (standardmäßig ist diese *192.168.1.1*):
+8. Die drei Programme **jevoisAruco_SingleTracker**, **jevoisAruco_MultiStationTracker** und **jevoisOpticalFlow** können nun  auf das Cognition Board über eine SSH-Schnittstelle kopiert werden. Dazu vorher über die serielle Schnittstelle die IP-Adresse des Cognition Boards herausfinden (standardmäßig ist diese *192.168.1.1*):
 ```
-scp jevoisAruco root@192.168.1.1:~
+scp jevoisAruco_SingleTracker root@192.168.1.1:~
+scp jevoisAruco_MultiStationTracker root@192.168.1.1:~
 scp jevoisOpticalFlow root@192.168.1.1:~
 ```
 9. Über eine SSH-Verbidnung mit dem Cognition Board verbinden:
@@ -43,15 +44,18 @@ ssh root@192.168.1.1
 10. Programme können nun auf dem AMiRo ausgeführt werden
 
 # ArUco Marker Tracking
-In diesem Demo Programm wird ein 4x4 ArUco Marker getrackt ([ArUco Generator](http://chev.me/arucogen/)). Das Programm kann mit folgenden Parametern ausgeführt werden:
+In diesem Demo Programm wird ein 4x4 ArUco Marker getrackt ([ArUco Generator](http://chev.me/arucogen/)). Dabei gibt es zwei Programme, welche mit folgenden Parametern gestartet werden:
 ```
-./jevoisAruco P_linear P_angular desired_dist desired_Marker_ID start_Marker_ID
+./jevoisAruco_SingleTracker P_linear P_angular desired_dist desired_Marker_ID start_Marker_ID
+./jevoisAruco_MultiStationTracker P_linear P_angular desired_dist start_Marker_ID
 ```
 * P_linear: Konstante für Regler zum Annähern an den Marker, bis gewünschte Distanz erreicht ist (Default: 500)
 * P_angular: Konstante für Regler zum mittig Ausrichten an den Marker (Default: 5000)
 * desired_dist: Abstand in mm, welcher zum getrackten Marker eingehalten wird (Default: 300)
 * desired_Marker_ID: Zu Trackende Marker ID (Default: 42)
 * start_Marker_ID: Marker ID, welche für den Start des Programms nötig ist (Default: 0)
+
+Das Single Marker Tracking sucht im Umfeld nach einem gezielten Marker (Default ID:42) und hält beim Auffinden dieses, eine konstante Distanz zu diesem ein. Das Multi Station Marker fährt eine bestimmte Anzahl an Marker in einer vorgegebenen Reihenfolge an, bis der letzte Marker erreicht ist. Die anzufahrenden Marker sind dabei mit ihrer ID in einem Array *desired_Marker_ID_Stations* im Programmcode angelegt. 
 
 Die wahre Markergröße (in mm) kann dabei im Code von [jevoisAruco_AmiroDist.cpp](https://github.com/kevinp1993/AMiRo_Jevois/blob/master/Jevois_AMiRo/jevoisAruco_AmiroDist.cpp) in folgender Zeile geändert werden:
 ```c
