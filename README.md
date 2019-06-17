@@ -49,15 +49,15 @@ In diesem Demo Programm wird ein 4x4 ArUco Marker getrackt ([ArUco Generator](ht
 ./jevoisAruco_SingleTracker P_linear P_angular desired_dist desired_Marker_ID start_Marker_ID
 ./jevoisAruco_MultiStationTracker P_linear P_angular desired_dist start_Marker_ID
 ```
-* P_linear: Konstante für Regler zum Annähern an den Marker, bis gewünschte Distanz erreicht ist (Default: 500)
-* P_angular: Konstante für Regler zum mittig Ausrichten an den Marker (Default: 5000)
-* desired_dist: Abstand in mm, welcher zum getrackten Marker eingehalten wird (Default: 300)
-* desired_Marker_ID: Zu Trackende Marker ID (Default: 42)
-* start_Marker_ID: Marker ID, welche für den Start des Programms nötig ist (Default: 0)
+* P_linear: Konstante für Regler zum Annähern an den Marker, bis gewünschte Distanz erreicht ist (Default Single Tracking: 500)
+* P_angular: Konstante für Regler zum mittig Ausrichten an den Marker (Default Single Tracking: 5000)
+* desired_dist: Abstand in mm, welcher zum getrackten Marker eingehalten wird (Default Single Tracking: 300)
+* desired_Marker_ID: Zu Trackende Marker ID (Default Single Tracking: 42)
+* start_Marker_ID: Marker ID, welche für den Start des Programms nötig ist (Default Single Tracking: 0)
 
 Das Single Marker Tracking sucht im Umfeld nach einem gezielten Marker (Default ID:42) und hält beim Auffinden dieses, eine konstante Distanz zu diesem ein. Das Multi Station Marker fährt eine bestimmte Anzahl an Marker in einer vorgegebenen Reihenfolge an, bis der letzte Marker erreicht ist. Die anzufahrenden Marker sind dabei mit ihrer ID in einem Array *desired_Marker_ID_Stations* im Programmcode angelegt. 
 
-Die wahre Markergröße (in mm) kann dabei im Code von [jevoisAruco_AmiroDist.cpp](https://github.com/kevinp1993/AMiRo_Jevois/blob/master/Jevois_AMiRo/jevoisAruco_AmiroDist.cpp) in folgender Zeile geändert werden:
+Die wahre Markergröße (in mm) kann dabei im Code von [jevoisAruco_SingleTracker.cpp](https://github.com/kevinp1993/AMiRo_Jevois/blob/master/Jevois_AMiRo/jevoisAruco_SingleTracker.cpp) und [jevoisAruco_MultiStationTracker.cpp](https://github.com/kevinp1993/AMiRo_Jevois/blob/master/Jevois_AMiRo/jevoisAruco_MultiStationTracker.cpp) in folgender Zeile geändert werden:
 ```c
 system("echo setpar markerlen 94 > /dev/ttyACM0");
 ```
