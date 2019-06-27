@@ -4,21 +4,21 @@ Ziel dieses Projektes ist es, eine Demo Applikation für die Anbindung der [Jevo
 2. Obstacle Avoidance mittels Optical Flow
 
 # Repo Aufbau:
-1. [Jevois_AMiRo](https://github.com/kevinp1993/AMiRo_Jevois/tree/master/Jevois_AMiRo): Software für den AMiRo inklusive cmake List
-2. [Jevois_Software_Changes](https://github.com/kevinp1993/AMiRo_Jevois/tree/master/Jevois_Software_Changes): Geändertes Jevois Programm für das Obstacle Avoidance mittels Optical Flow (Änderung von [OpticalFlow](https://github.com/jevois/jevoisbase/blob/master/src/Modules/OpticalFlow/OpticalFlow.C)). 
-3. [media](https://github.com/kevinp1993/AMiRo_Jevois/tree/master/media): ArUco Marker und Dokumentationen
+1. [Jevois_AMiRo](https://github.com/autonomoussystemsengineering/amiro_jevois/tree/master/Jevois_AMiRo): Software für den AMiRo inklusive cmake List
+2. [Jevois_Software_Changes](https://github.com/autonomoussystemsengineering/amiro_jevois/tree/master/Jevois_Software_Changes): Geändertes Jevois Programm für das Obstacle Avoidance mittels Optical Flow (Änderung von [OpticalFlow](https://github.com/jevois/jevoisbase/blob/master/src/Modules/OpticalFlow/OpticalFlow.C)). 
+3. [media](https://github.com/autonomoussystemsengineering/amiro_jevois/tree/master/media): ArUco Marker und Dokumentationen
 
 # Jevois Vorbereitung
 * Jevois Software auf SD-Card flashen: Anleitungen und Software finden sich auf der [Website](http://jevois.org/start/) und im [Repo](https://github.com/jevois/). Dabei die Änderung im [OpticalFlow](https://github.com/jevois/jevoisbase/blob/master/src/Modules/OpticalFlow/OpticalFlow.C) berücksichtigen. 
 
 # Vorbereitung 
-1. [AMiRo_Jevois Repo](https://github.com/kevinp1993/AMiRo_Jevois) auf Rechner clonen 
+1. [AMiRo_Jevois Repo](https://github.com/autonomoussystemsengineering/amiro_jevois) auf Rechner clonen 
 2. Einrichtung der Cross-Compiler Umgebung mit **poky-glibc-x86_64-meta-toolchain-openrobotix-cortexa8hf-vfp-neon-toolchain-openrobotix-1.7.2.sh** auf dem Rechner. Das benötigte shell script liegt im [ks-temp Ordner](sftp://twix.techfak.uni-bielefeld.de/vol/ks-temp/). 
 3. Sourcen des Cross-Compilers:
 ```
 source /opt/poky/1.7.2/environment-setup-cortexa8hf-vfp-neon-poky-linux-gnueabi
 ```
-4. Im Ordner [Jevois_AMiRo](https://github.com/kevinp1993/AMiRo_Jevois/tree/master/Jevois_AMiRo) des AMiRo_Jevois Repo das cmake ausführen:
+4. Im Ordner [Jevois_AMiRo](https://github.com/autonomoussystemsengineering/amiro_jevois/tree/master/Jevois_AMiRo) des AMiRo_Jevois Repo das cmake ausführen:
 ```
 cmake .
 ```
@@ -56,7 +56,7 @@ In diesem Demo Programm wird ein 4x4 ArUco Marker getrackt ([ArUco Generator](ht
 
 Das Single Marker Tracking sucht im Umfeld nach einem gezielten Marker (Default ID:42) und hält beim Auffinden dieses, eine konstante Distanz zu diesem ein. Das Multi Station Marker fährt eine bestimmte Anzahl an Marker in einer vorgegebenen Reihenfolge an, bis der letzte Marker erreicht ist. Die anzufahrenden Marker sind dabei mit ihrer ID in einem Array *desired_Marker_ID_Stations* im Programmcode angelegt. 
 
-Die wahre Markergröße (in mm) kann dabei im Code von [jevoisAruco_SingleTracker.cpp](https://github.com/kevinp1993/AMiRo_Jevois/blob/master/Jevois_AMiRo/jevoisAruco_SingleTracker.cpp) und [jevoisAruco_MultiStationTracker.cpp](https://github.com/kevinp1993/AMiRo_Jevois/blob/master/Jevois_AMiRo/jevoisAruco_MultiStationTracker.cpp) in folgender Zeile geändert werden:
+Die wahre Markergröße (in mm) kann dabei im Code von [jevoisAruco_SingleTracker.cpp](https://github.com/autonomoussystemsengineering/amiro_jevois/tree/master/Jevois_AMiRo/jevoisAruco_SingleTracker.cpp) und [jevoisAruco_MultiStationTracker.cpp](https://github.com/autonomoussystemsengineering/amiro_jevois/tree/master/Jevois_AMiRo/jevoisAruco_MultiStationTracker.cpp) in folgender Zeile geändert werden:
 ```c
 system("echo setpar markerlen 94 > /dev/ttyACM0");
 ```
@@ -87,7 +87,7 @@ Avoidance on a Hexapod Walking Robot
 * v: lineare Geschwindigkeit des AMiRo (Default: 120000)
 * alpha: Tiefpass Konstante (Default: 0,2)
 
-Das Programm ist in [jevoisOpticalFlow.cpp](https://github.com/kevinp1993/AMiRo_Jevois/blob/master/Jevois_AMiRo/jevoisOpticalFlow.cpp) hinterlegt.
+Das Programm ist in [jevoisOpticalFlow.cpp](https://github.com/autonomoussystemsengineering/amiro_jevois/tree/master/Jevois_AMiRo/jevoisOpticalFlow.cpp) hinterlegt.
 
 Der Optical Flow Algorithmus auf der Jevois Kamera wird mit folgender Zeile konfiguriert:
 ```c
