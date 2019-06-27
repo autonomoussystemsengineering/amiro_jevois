@@ -107,13 +107,9 @@ int main(int argc, const char *argv[])
     }
     if (argc >= 5)
     {
-        desired_Marker_ID = atoi(argv[4]);
-    }
-    if (argc >= 6)
-    {
         start_Marker_ID = atoi(argv[5]);
     }
-    printf("Parameter:\tP_lin = %f\t-\tP_ang = %f\t-\tdistance = %f\t-\tMarker_ID = %d\t-\tStart_ID = %d\n\n", P_linear, P_angular, disired_dist, desired_Marker_ID, start_Marker_ID);
+    printf("Parameter:\tP_lin = %f\t-\tP_ang = %f\t-\tdistance = %f\t-\tStart_ID = %d\n\n", P_linear, P_angular, disired_dist, start_Marker_ID);
 
     //Variables for Marker Tracking
     bool marker_tracked = false;
@@ -308,11 +304,6 @@ int main(int argc, const char *argv[])
         }
         case TARGET:
         {
-            // if (actual_ID != desired_Marker_ID || fabs(Marker_X_Pos) > angular_thresh_target || fabs(linear_diff) > linear_thresh_target)
-            // {
-            //     printf("State=SEARCH\n");
-            //     nextState = SEARCH;
-            // } else {
                 station_idx++;
                 if (station_idx >= n_stations) {
                     nextState = FINISH;
@@ -321,7 +312,6 @@ int main(int argc, const char *argv[])
                     desired_Marker_ID = desired_Marker_ID_Stations[station_idx];
                     nextState = SEARCH;
                 }
-           // }
             break;
         }
         case FINISH:
@@ -410,7 +400,6 @@ int main(int argc, const char *argv[])
         case TARGET:
         {
             CAN.setTargetSpeed(0,0);
-            //sleep(1);
             break;
         }
         case FINISH:
